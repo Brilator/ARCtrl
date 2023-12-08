@@ -775,9 +775,10 @@ type ArcTable(name: string, headers: ResizeArray<CompositeHeader>, values: Syste
             this.StructurallyEquals(table)
         | _ -> false
 
-    // it's good practice to ensure that this behaves using the same fields as Equals does:
-    override this.GetHashCode() = 
-        //let v1,v2 = 
+    member this.GetHeadersHashCode() =
+        Array.ofSeq >> Aux.HashCodes.boxHashArray <| this.Headers
+
+    member this.GetValuesHashCode() = 
         let v =
             [|
                 for KeyValue(k,v) in this.Values do
@@ -786,10 +787,16 @@ type ArcTable(name: string, headers: ResizeArray<CompositeHeader>, values: Syste
             |> Array.sortBy fst
             // must remove tuples. Tuples handle unpredictable for GetHashCode in javascript.
             |> Array.map (fun ((k1,k2),v) -> [|box k1; box k2; box v|] |> Aux.HashCodes.boxHashArray) 
+        Array.ofSeq >> Aux.HashCodes.boxHashArray <| v
+
+    // it's good practice to ensure that this behaves using the same fields as Equals does:
+    override this.GetHashCode() = 
+        //let v1,v2 = 
+        
         [|
             box this.Name
-            Array.ofSeq >> Aux.HashCodes.boxHashArray <| this.Headers
-            Array.ofSeq >> Aux.HashCodes.boxHashArray <| v
+            this.GetHeadersHashCode()
+            this.GetValuesHashCode()
         |]
         |> Aux.HashCodes.boxHashArray 
         |> fun x -> x :?> int
